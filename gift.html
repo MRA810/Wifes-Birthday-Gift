@@ -1,0 +1,1412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Lavend 🪻 — Our Memory Journal</title>
+<meta name="description" content="A cozy lavender scrapbook of memories, made with love.">
+
+<!-- Google Fonts: Fraunces for the storybook display headings, Caveat for handwritten diary notes, Quicksand for soft rounded UI text -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Caveat:wght@500;600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+/* ==========================================================================
+   LAVEND — Design Tokens
+   A lavender scrapbook: linen-cream pages, pressed-petal accents,
+   polaroids pinned with washi tape. Signature element: the corkboard feed
+   where every card is tape-pinned at a gentle hand-set angle, like it was
+   actually placed there by hand rather than laid out by a grid.
+   ========================================================================== */
+:root{
+  /* --- Palette --- */
+  --cream:        #FFF8F0;   /* page background, warm paper */
+  --cream-deep:   #F7EFE2;   /* card back / recessed areas */
+  --lavender-lt:  #E6E6FA;   /* soft washes, badges */
+  --lavender:     #D8B4F8;   /* primary accent */
+  --lavender-dp:  #8B6BB5;   /* deep lavender — text-safe accent, buttons */
+  --lavender-ink: #4A3B5C;   /* main ink color, deep plum-grey */
+  --blush:        #F7C6D9;   /* accent swatch */
+  --mint:         #C3EFD8;   /* accent swatch */
+  --gold:         #F0D9A0;   /* washi tape / highlight swatch */
+  --coral:        #F4A9A0;   /* accent swatch */
+  --line:         #E4D9EC;   /* hairline borders */
+  --shadow:       rgba(74, 59, 92, 0.16);
+  --shadow-soft:  rgba(74, 59, 92, 0.10);
+
+  /* --- Type --- */
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-hand:    'Caveat', cursive;
+  --font-ui:      'Quicksand', system-ui, sans-serif;
+
+  --radius-lg: 22px;
+  --radius-md: 14px;
+  --radius-sm: 9px;
+}
+
+/* --- Reset --- */
+*, *::before, *::after{ box-sizing: border-box; }
+html{ scroll-behavior: smooth; }
+body{
+  margin: 0;
+  background: var(--cream);
+  color: var(--lavender-ink);
+  font-family: var(--font-ui);
+  line-height: 1.5;
+  min-height: 100vh;
+  overflow-x: hidden;
+  /* faint linen texture so the page reads as paper, not a flat screen */
+  background-image:
+    radial-gradient(circle at 20% 10%, rgba(216,180,248,0.10), transparent 40%),
+    radial-gradient(circle at 85% 30%, rgba(195,239,216,0.12), transparent 45%),
+    radial-gradient(circle at 50% 90%, rgba(247,198,217,0.10), transparent 40%);
+}
+img{ max-width: 100%; display:block; }
+button{ font-family: inherit; cursor: pointer; }
+input, textarea{ font-family: inherit; }
+h1,h2,h3{ font-family: var(--font-display); margin: 0; }
+:focus-visible{ outline: 3px solid var(--lavender-dp); outline-offset: 2px; border-radius: 6px; }
+.hidden{ display: none !important; }
+
+/* ==========================================================================
+   Ambient petals — a few drifting shapes behind everything, css-only
+   ========================================================================== */
+.petals{ position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+.petal{
+  position: absolute;
+  top: -40px;
+  font-size: 22px;
+  opacity: 0.55;
+  animation: drift linear infinite;
+  filter: saturate(0.9);
+}
+@keyframes drift{
+  0%   { transform: translateY(-5vh) translateX(0) rotate(0deg); opacity: 0; }
+  10%  { opacity: 0.55; }
+  90%  { opacity: 0.4; }
+  100% { transform: translateY(110vh) translateX(40px) rotate(220deg); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce){
+  .petal{ animation: none; display: none; }
+}
+
+/* ==========================================================================
+   Cover / Header
+   ========================================================================== */
+.cover{
+  position: relative;
+  z-index: 1;
+  padding: 64px 20px 56px;
+  text-align: center;
+}
+.cover-inner{ max-width: 640px; margin: 0 auto; }
+.eyebrow{
+  font-family: var(--font-hand);
+  font-size: 1.35rem;
+  color: var(--lavender-dp);
+  margin: 0 0 6px;
+  letter-spacing: 0.02em;
+}
+.brand{
+  font-size: clamp(2.6rem, 8vw, 4.2rem);
+  font-weight: 600;
+  color: var(--lavender-ink);
+  letter-spacing: -0.01em;
+}
+.brand-flower{ display:inline-block; animation: sway 3.5s ease-in-out infinite; transform-origin: bottom center; }
+@keyframes sway{ 0%,100%{ transform: rotate(-6deg);} 50%{ transform: rotate(6deg);} }
+.subhead{
+  font-size: 1.05rem;
+  color: var(--lavender-dp);
+  margin: 10px 0 30px;
+}
+.btn-primary{
+  background: var(--lavender-dp);
+  color: #fff;
+  border: none;
+  padding: 14px 30px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 1rem;
+  box-shadow: 0 10px 24px var(--shadow);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+.btn-primary:hover{ transform: translateY(-2px); box-shadow: 0 14px 28px var(--shadow); background:#7c5aa8; }
+.btn-primary:active{ transform: translateY(0); }
+.memory-count{
+  margin-top: 16px;
+  font-size: 0.9rem;
+  color: var(--lavender-dp);
+  opacity: 0.85;
+}
+
+/* --- Header action row: music toggle + birthday message --- */
+.cover-actions{
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+.btn-ghost{
+  background: #fff;
+  border: 1.5px solid var(--lavender);
+  color: var(--lavender-dp);
+  padding: 11px 22px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.92rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 6px 16px var(--shadow-soft);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+}
+.btn-ghost:hover{ transform: translateY(-2px); background: var(--lavender-lt); }
+.btn-ghost.is-active{ background: var(--lavender-dp); color: #fff; border-color: var(--lavender-dp); }
+
+/* tiny bouncing equalizer bars shown while music plays */
+.eq{ display: inline-flex; align-items: flex-end; gap: 2px; height: 12px; }
+.eq span{ width: 3px; background: currentColor; border-radius: 2px; animation: eq-bounce 0.9s ease-in-out infinite; }
+.eq span:nth-child(1){ animation-delay: 0s; }
+.eq span:nth-child(2){ animation-delay: 0.15s; }
+.eq span:nth-child(3){ animation-delay: 0.3s; }
+.btn-ghost:not(.is-active) .eq span{ animation-play-state: paused; height: 4px !important; }
+@keyframes eq-bounce{
+  0%, 100% { height: 4px; }
+  50% { height: 12px; }
+}
+
+/* ==========================================================================
+   Feed — the corkboard. Cards pinned at hand-set angles.
+   ========================================================================== */
+.feed-section{
+  position: relative;
+  z-index: 1;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 10px 18px 100px;
+}
+.feed-grid{
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 46px 28px;
+  padding-top: 20px;
+}
+@media (min-width: 620px){
+  .feed-grid{ grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 1000px){
+  .feed-grid{ grid-template-columns: repeat(3, 1fr); }
+}
+
+/* --- Empty state --- */
+.empty-state{
+  text-align: center;
+  padding: 60px 20px;
+  max-width: 420px;
+  margin: 0 auto;
+}
+.empty-state .empty-flower{ font-size: 3rem; display:block; margin-bottom: 6px; }
+.empty-state h3{ font-size: 1.5rem; margin-bottom: 8px; }
+.empty-state p{ color: var(--lavender-dp); margin-bottom: 22px; }
+
+/* --- Polaroid card --- */
+.card{
+  position: relative;
+  background: #fff;
+  border-radius: var(--radius-sm);
+  padding: 14px 14px 18px;
+  box-shadow: 0 10px 22px var(--shadow-soft), 0 2px 6px rgba(74,59,92,0.06);
+  transform: rotate(var(--tilt, -2deg));
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  animation: pin-in 0.45s ease both;
+}
+.card:hover{ transform: rotate(0deg) translateY(-4px) scale(1.015); box-shadow: 0 18px 34px var(--shadow); z-index: 2; }
+@keyframes pin-in{
+  from{ opacity: 0; transform: translateY(14px) rotate(var(--tilt,-2deg)) scale(0.97); }
+  to{ opacity: 1; transform: rotate(var(--tilt,-2deg)) scale(1); }
+}
+
+/* washi tape strip pinning the card down */
+.tape{
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  width: 74px;
+  height: 26px;
+  transform: translateX(-50%) rotate(var(--tape-tilt, -4deg));
+  background: var(--tape-color, var(--gold));
+  opacity: 0.85;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+  clip-path: polygon(4% 0, 96% 0, 100% 100%, 0% 100%);
+}
+
+.card-photo-wrap{
+  position: relative;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--cream-deep);
+  aspect-ratio: 4 / 3;
+  border: 6px solid #fff;
+  outline: 3px solid var(--accent, var(--lavender));
+  cursor: zoom-in;
+}
+.card-photo-wrap img{ width:100%; height:100%; object-fit: cover; }
+
+.page-badge{
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(255,255,255,0.92);
+  color: var(--lavender-dp);
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  padding: 4px 9px;
+  border-radius: 999px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+}
+
+.card-caption{
+  font-family: var(--font-hand);
+  font-size: 1.35rem;
+  line-height: 1.25;
+  color: var(--lavender-ink);
+  margin: 14px 6px 10px;
+  word-break: break-word;
+  min-height: 1.6em;
+}
+
+.card-actions{
+  display: flex;
+  gap: 8px;
+  padding: 0 4px;
+}
+.icon-btn{
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  background: var(--cream-deep);
+  border: 1px solid var(--line);
+  color: var(--lavender-dp);
+  border-radius: var(--radius-sm);
+  padding: 7px 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  transition: background 0.15s ease, transform 0.15s ease, color 0.15s ease;
+}
+.icon-btn:hover{ background: var(--lavender-lt); transform: translateY(-1px); }
+.icon-btn.danger:hover{ background: var(--blush); color: #a8415a; }
+.icon-btn svg{ width: 15px; height: 15px; flex-shrink: 0; }
+
+/* ==========================================================================
+   Modal shared shell (add/edit + confirm)
+   ========================================================================== */
+.modal-overlay{
+  position: fixed; inset: 0; z-index: 50;
+  background: rgba(74, 59, 92, 0.38);
+  backdrop-filter: blur(3px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 18px;
+  animation: fade-in 0.2s ease both;
+}
+@keyframes fade-in{ from{ opacity:0; } to{ opacity:1; } }
+.modal{
+  background: var(--cream);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 460px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 28px 24px 24px;
+  position: relative;
+  box-shadow: 0 26px 60px rgba(74,59,92,0.35);
+  animation: pop-in 0.25s cubic-bezier(.2,.9,.3,1.2) both;
+}
+@keyframes pop-in{ from{ opacity:0; transform: translateY(16px) scale(0.96);} to{ opacity:1; transform: translateY(0) scale(1);} }
+.modal-close{
+  position: absolute; top: 14px; right: 14px;
+  width: 34px; height: 34px; border-radius: 50%;
+  border: none; background: var(--cream-deep); color: var(--lavender-dp);
+  font-size: 1.3rem; line-height: 1; display:flex; align-items:center; justify-content:center;
+  transition: background 0.15s ease;
+}
+.modal-close:hover{ background: var(--lavender-lt); }
+.modal h2{ font-size: 1.6rem; margin-bottom: 18px; }
+
+#memoryForm label{
+  display:block;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--lavender-dp);
+  margin: 16px 0 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+#memoryForm textarea, #memoryForm input[type="number"]{
+  width: 100%;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 1rem;
+  background: #fff;
+  color: var(--lavender-ink);
+  resize: vertical;
+}
+#memoryForm textarea{ min-height: 78px; font-family: var(--font-hand); font-size: 1.25rem; }
+#memoryForm textarea:focus, #memoryForm input:focus{ border-color: var(--lavender-dp); }
+
+/* --- Uploader --- */
+.uploader{
+  border: 2px dashed var(--lavender);
+  border-radius: var(--radius-md);
+  background: #fff;
+  min-height: 150px;
+  display: flex; align-items: center; justify-content: center;
+  text-align: center;
+  padding: 14px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  position: relative;
+  overflow: hidden;
+}
+.uploader.drag-over{ background: var(--lavender-lt); border-color: var(--lavender-dp); }
+.uploader #uploadPrompt{ color: var(--lavender-dp); font-size: 0.92rem; padding: 10px; }
+.uploader #uploadPrompt strong{ display:block; font-size: 1.5rem; margin-bottom:4px; }
+.uploader img#imagePreview{ width: 100%; max-height: 220px; object-fit: cover; border-radius: 8px; }
+
+/* --- Color swatches --- */
+.swatches{ display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 4px; }
+.swatch{
+  width: 32px; height: 32px; border-radius: 50%;
+  border: 2px solid transparent;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.06);
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+.swatch:hover{ transform: scale(1.12); }
+.swatch.active{ border-color: var(--lavender-ink); transform: scale(1.14); }
+.color-row{ display:flex; align-items:center; gap: 12px; }
+#customColor{
+  width: 32px; height: 32px; border: none; padding: 0; background: none; border-radius: 50%; overflow: hidden; cursor: pointer;
+}
+
+.modal-actions{ display: flex; gap: 10px; margin-top: 24px; }
+.modal-actions button{
+  flex: 1;
+  padding: 12px;
+  border-radius: 999px;
+  border: none;
+  font-weight: 700;
+  font-size: 0.95rem;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+#cancelBtn{ background: var(--cream-deep); color: var(--lavender-dp); }
+#cancelBtn:hover{ background: var(--lavender-lt); }
+#saveBtn{ background: var(--lavender-dp); color: #fff; box-shadow: 0 8px 18px var(--shadow); }
+#saveBtn:hover{ background: #7c5aa8; transform: translateY(-1px); }
+
+/* --- Confirm dialog --- */
+.confirm-box{
+  background: var(--cream);
+  border-radius: var(--radius-lg);
+  padding: 26px 24px;
+  max-width: 340px;
+  text-align: center;
+  box-shadow: 0 26px 60px rgba(74,59,92,0.35);
+  animation: pop-in 0.25s cubic-bezier(.2,.9,.3,1.2) both;
+}
+.confirm-box p{ font-size: 1.05rem; margin-bottom: 20px; }
+.confirm-actions{ display:flex; gap: 10px; }
+.confirm-actions button{ flex:1; padding: 11px; border-radius: 999px; border:none; font-weight:700; }
+#confirmCancel{ background: var(--cream-deep); color: var(--lavender-dp); }
+#confirmOk{ background: #E77E93; color: #fff; }
+#confirmOk:hover{ background: #d96d83; }
+
+/* ==========================================================================
+   Lightbox
+   ========================================================================== */
+.lightbox{
+  position: fixed; inset: 0; z-index: 80;
+  background: rgba(30, 20, 40, 0.92);
+  display:flex; flex-direction: column; align-items:center; justify-content:center;
+  animation: fade-in 0.2s ease both;
+  touch-action: none;
+}
+.lightbox-stage{
+  flex: 1; width: 100%;
+  display:flex; align-items:center; justify-content:center;
+  overflow: hidden;
+  padding: 20px;
+}
+.lightbox-stage img{
+  max-width: 100%; max-height: 78vh;
+  transition: transform 0.08s ease-out;
+  transform: scale(var(--zoom, 1)) translate(var(--pan-x,0), var(--pan-y,0));
+  touch-action: none;
+  user-select: none;
+  border-radius: 6px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+}
+#lightboxClose{
+  position: absolute; top: 16px; right: 18px;
+  width: 42px; height: 42px; border-radius: 50%;
+  border: none; background: rgba(255,255,255,0.14); color: #fff;
+  font-size: 1.5rem; line-height:1;
+}
+#lightboxClose:hover{ background: rgba(255,255,255,0.24); }
+.lightbox-controls{
+  display:flex; gap: 12px; padding: 16px 0 28px;
+}
+.lightbox-controls button{
+  width: 46px; height: 46px; border-radius: 50%;
+  border: none; background: rgba(255,255,255,0.14); color:#fff;
+  font-size: 1.15rem; font-weight:700;
+  display:flex; align-items:center; justify-content:center;
+}
+.lightbox-controls button:hover{ background: rgba(255,255,255,0.26); }
+.lightbox-controls #zoomResetBtn{ width:auto; padding: 0 18px; border-radius: 999px; font-size:0.85rem; }
+
+/* ==========================================================================
+   Toast
+   ========================================================================== */
+.toast{
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: var(--lavender-ink); color: #fff;
+  padding: 12px 22px; border-radius: 999px;
+  font-size: 0.9rem; font-weight: 600;
+  box-shadow: 0 12px 26px rgba(0,0,0,0.25);
+  z-index: 100;
+  animation: toast-in 0.25s ease both;
+}
+@keyframes toast-in{ from{ opacity:0; transform: translateX(-50%) translateY(10px);} to{ opacity:1; transform: translateX(-50%) translateY(0);} }
+
+/* ==========================================================================
+   Birthday Celebration overlay
+   ========================================================================== */
+.celebration{
+  position: fixed; inset: 0; z-index: 90;
+  background: radial-gradient(circle at 50% 20%, rgba(216,180,248,0.55), rgba(30,20,40,0.88));
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+  animation: fade-in 0.25s ease both;
+  overflow: hidden;
+}
+#confettiCanvas{
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+}
+.balloons{ position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.balloon{
+  position: absolute;
+  bottom: -60px;
+  font-size: 40px;
+  animation: rise linear infinite;
+  filter: drop-shadow(0 8px 10px rgba(0,0,0,0.25));
+}
+@keyframes rise{
+  0%   { transform: translateY(0) translateX(0) rotate(-4deg); opacity: 0; }
+  8%   { opacity: 1; }
+  50%  { transform: translateY(-55vh) translateX(20px) rotate(4deg); }
+  92%  { opacity: 1; }
+  100% { transform: translateY(-115vh) translateX(-10px) rotate(-4deg); opacity: 0; }
+}
+
+.celebration-card{
+  position: relative;
+  z-index: 2;
+  background: var(--cream);
+  border-radius: 26px;
+  max-width: 560px;
+  width: 100%;
+  max-height: 86vh;
+  overflow-y: auto;
+  padding: 40px 30px 34px;
+  text-align: center;
+  box-shadow: 0 30px 70px rgba(30,20,40,0.45);
+  animation: pop-in 0.35s cubic-bezier(.2,.9,.3,1.2) both;
+}
+.celebration-close{
+  position: absolute; top: 14px; right: 14px;
+  width: 36px; height: 36px; border-radius: 50%;
+  border: none; background: var(--cream-deep); color: var(--lavender-dp);
+  font-size: 1.3rem; line-height: 1;
+}
+.celebration-close:hover{ background: var(--lavender-lt); }
+.celebration-cake{
+  font-size: 3rem;
+  display: block;
+  margin-bottom: 6px;
+  animation: cake-wobble 1.8s ease-in-out infinite;
+}
+@keyframes cake-wobble{ 0%,100%{ transform: rotate(-6deg);} 50%{ transform: rotate(6deg);} }
+.celebration-title{
+  font-size: clamp(1.6rem, 5vw, 2.2rem);
+  color: var(--lavender-dp);
+  margin-bottom: 18px;
+}
+.celebration-message{
+  font-family: var(--font-hand);
+  font-size: clamp(1.25rem, 3.4vw, 1.55rem);
+  line-height: 1.5;
+  color: var(--lavender-ink);
+  text-align: left;
+  white-space: pre-wrap;
+}
+
+/* Larger desktop breathing room */
+@media (min-width: 1000px){
+  .cover{ padding: 88px 20px 64px; }
+  .card-caption{ font-size: 1.5rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- Ambient drifting petals, purely decorative -->
+<div class="petals" id="petals" aria-hidden="true"></div>
+
+<!-- ============ Header / Cover ============ -->
+<header class="cover">
+  <div class="cover-inner">
+    <p class="eyebrow">a little lavender scrapbook, just for you</p>
+    <h1 class="brand">Lavend <span class="brand-flower">🪻</span></h1>
+    <p class="subhead">Our Memory Journal &amp; Cute Photo Scrapbook</p>
+    <button class="btn-primary" id="addMemoryBtn" type="button">+ Add New Memory</button>
+    <div class="cover-actions">
+      <button class="btn-ghost" id="musicToggleBtn" type="button" aria-pressed="false">
+        <span aria-hidden="true">🎵</span>
+        <span id="musicBtnLabel">Play The Surprise Song</span>
+        <span class="eq" aria-hidden="true"><span></span><span></span><span></span></span>
+      </button>
+      <button class="btn-ghost" id="birthdayBtn" type="button">
+        <span aria-hidden="true">💌</span> Birthday Message
+      </button>
+    </div>
+    <p class="memory-count" id="memoryCount"></p>
+  </div>
+</header>
+
+<!-- Hidden YouTube player that supplies the background music. Kept in the
+     DOM (not display:none) so the browser's audio pipeline stays active,
+     but visually tucked away off-screen. -->
+<!-- Background music. Place a file named "song.mp3" in the same folder as
+     this index.html file and it will play here — no internet needed. -->
+<audio id="bgMusic" src="song.mp3" loop preload="auto"></audio>
+
+<!-- ============ Feed ============ -->
+<main class="feed-section">
+  <div class="empty-state hidden" id="emptyState">
+    <span class="empty-flower">🪻</span>
+    <h3>Your scrapbook is waiting</h3>
+    <p>No pages yet — tuck in your first memory and this page will start to fill up.</p>
+    <button class="btn-primary" id="emptyAddBtn" type="button">+ Add New Memory</button>
+  </div>
+  <div class="feed-grid" id="feedGrid"></div>
+</main>
+
+<!-- ============ Add / Edit Memory Modal ============ -->
+<div class="modal-overlay hidden" id="memoryModal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <button class="modal-close" id="modalCloseBtn" type="button" aria-label="Close">&times;</button>
+    <h2 id="modalTitle">New Memory</h2>
+    <form id="memoryForm">
+      <input type="hidden" id="editingId" value="">
+
+      <div class="uploader" id="uploader">
+        <input type="file" id="imageInput" accept="image/*" hidden>
+        <div id="uploadPrompt">
+          <strong>📷</strong>
+          drag &amp; drop a photo here, or tap to choose one
+        </div>
+        <img id="imagePreview" class="hidden" alt="Preview of the selected photo">
+      </div>
+
+      <label for="captionInput">Diary note</label>
+      <textarea id="captionInput" maxlength="280" placeholder="write a cute little note about this moment..."></textarea>
+
+      <label>Accent color</label>
+      <div class="color-row">
+        <div class="swatches" id="swatches">
+          <button type="button" class="swatch active" style="background:#D8B4F8" data-color="#D8B4F8" aria-label="Lavender"></button>
+          <button type="button" class="swatch" style="background:#F7C6D9" data-color="#F7C6D9" aria-label="Blush pink"></button>
+          <button type="button" class="swatch" style="background:#C3EFD8" data-color="#C3EFD8" aria-label="Mint"></button>
+          <button type="button" class="swatch" style="background:#F0D9A0" data-color="#F0D9A0" aria-label="Warm gold"></button>
+          <button type="button" class="swatch" style="background:#F4A9A0" data-color="#F4A9A0" aria-label="Coral"></button>
+        </div>
+        <input type="color" id="customColor" value="#D8B4F8" aria-label="Custom accent color">
+      </div>
+
+      <label for="pageNumberInput">Page number</label>
+      <input type="number" id="pageNumberInput" min="1" step="1">
+
+      <div class="modal-actions">
+        <button type="button" id="cancelBtn">Cancel</button>
+        <button type="submit" id="saveBtn">Save Memory</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============ Lightbox ============ -->
+<div class="lightbox hidden" id="lightbox">
+  <button id="lightboxClose" type="button" aria-label="Close">&times;</button>
+  <div class="lightbox-stage" id="lightboxStage">
+    <img id="lightboxImg" alt="Zoomed memory photo" style="--zoom:1;--pan-x:0px;--pan-y:0px;">
+  </div>
+  <div class="lightbox-controls">
+    <button id="zoomOutBtn" type="button" aria-label="Zoom out">&minus;</button>
+    <button id="zoomResetBtn" type="button">Reset</button>
+    <button id="zoomInBtn" type="button" aria-label="Zoom in">+</button>
+  </div>
+</div>
+
+<!-- ============ Delete confirm dialog ============ -->
+<div class="modal-overlay hidden" id="confirmDialog">
+  <div class="confirm-box">
+    <p id="confirmMessage">Remove this page from the scrapbook?</p>
+    <div class="confirm-actions">
+      <button type="button" id="confirmCancel">Keep it</button>
+      <button type="button" id="confirmOk">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ Birthday Celebration overlay ============ -->
+<div class="celebration hidden" id="celebration">
+  <canvas id="confettiCanvas"></canvas>
+  <div class="balloons" id="balloons"></div>
+  <div class="celebration-card">
+    <button class="celebration-close" id="celebrationClose" type="button" aria-label="Close">&times;</button>
+    <span class="celebration-cake" aria-hidden="true">🎂</span>
+    <h2 class="celebration-title">Happy Birthday, My Love 🪻</h2>
+    <p class="celebration-message" id="celebrationMessage"></p>
+  </div>
+</div>
+
+<div class="toast hidden" id="toast"></div>
+
+<script>
+/* ==========================================================================
+   LAVEND — App Script
+   Organized into small modules on one file:
+     LavendDB    -> IndexedDB persistence (photos + text + color + page #)
+     ImageUtil   -> resizing/compressing photos before they're stored
+     LavendUI    -> rendering the feed, cards, and shared UI bits (toast)
+     ModalCtrl   -> the Add/Edit Memory form modal
+     Lightbox    -> full-screen zoom viewer with pinch/wheel/button zoom
+     ConfirmCtrl -> the little "are you sure" dialog used for deletes
+   ========================================================================== */
+
+/* ---------------------------------------------------------------------- *
+ * LavendDB — a thin wrapper around IndexedDB so the rest of the app can
+ * just call simple async-style functions instead of juggling requests.
+ * Each memory record looks like:
+ *   { id, image (dataURL), caption, color (hex), pageNumber, createdAt }
+ * ---------------------------------------------------------------------- */
+const LavendDB = (() => {
+  const DB_NAME = 'lavendDB';
+  const STORE = 'memories';
+  let dbPromise = null;
+
+  function open() {
+    if (dbPromise) return dbPromise;
+    dbPromise = new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains(STORE)) {
+          const store = db.createObjectStore(STORE, { keyPath: 'id', autoIncrement: true });
+          store.createIndex('pageNumber', 'pageNumber', { unique: false });
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    return dbPromise;
+  }
+
+  async function getAll() {
+    const db = await open();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE, 'readonly');
+      const req = tx.objectStore(STORE).getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async function add(memory) {
+    const db = await open();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE, 'readwrite');
+      const req = tx.objectStore(STORE).add(memory);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async function update(memory) {
+    const db = await open();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE, 'readwrite');
+      const req = tx.objectStore(STORE).put(memory);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async function remove(id) {
+    const db = await open();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE, 'readwrite');
+      const req = tx.objectStore(STORE).delete(id);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  return { getAll, add, update, remove };
+})();
+
+/* ---------------------------------------------------------------------- *
+ * ImageUtil — resizes/compresses an uploaded image via <canvas> before
+ * it's handed to IndexedDB, so a 12MP phone photo doesn't bloat storage.
+ * ---------------------------------------------------------------------- */
+const ImageUtil = {
+  MAX_DIMENSION: 1600,
+  QUALITY: 0.82,
+
+  fileToDataURL(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  },
+
+  async resize(dataURL) {
+    const img = await new Promise((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = reject;
+      el.src = dataURL;
+    });
+
+    let { width, height } = img;
+    const max = ImageUtil.MAX_DIMENSION;
+    if (width > max || height > max) {
+      if (width >= height) {
+        height = Math.round(height * (max / width));
+        width = max;
+      } else {
+        width = Math.round(width * (max / height));
+        height = max;
+      }
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, width, height);
+    return canvas.toDataURL('image/jpeg', ImageUtil.QUALITY);
+  }
+};
+
+/* ---------------------------------------------------------------------- *
+ * State
+ * ---------------------------------------------------------------------- */
+let memories = [];          // cached list from IndexedDB, kept sorted
+let pendingImageDataURL = null; // image currently staged in the modal
+
+/* deterministic "hand-set" rotation + tape color per card, based on id,
+   so a card doesn't jump to a new angle every re-render */
+const TILTS = [-3, -2, -1.2, 1.2, 2, 3];
+const TAPE_COLORS = ['#F0D9A0', '#C3EFD8', '#F7C6D9', '#D8B4F8', '#F4A9A0'];
+function hashPick(id, arr) {
+  const n = Number(id) || 0;
+  return arr[n % arr.length];
+}
+
+/* ---------------------------------------------------------------------- *
+ * LavendUI — rendering the feed + small shared helpers (toast, count)
+ * ---------------------------------------------------------------------- */
+const LavendUI = {
+  feedGrid: document.getElementById('feedGrid'),
+  emptyState: document.getElementById('emptyState'),
+  memoryCount: document.getElementById('memoryCount'),
+  toastEl: document.getElementById('toast'),
+  toastTimer: null,
+
+  async refresh() {
+    memories = await LavendDB.getAll();
+    memories.sort((a, b) => (a.pageNumber - b.pageNumber) || (a.id - b.id));
+    LavendUI.render();
+  },
+
+  render() {
+    const grid = LavendUI.feedGrid;
+    grid.innerHTML = '';
+
+    if (memories.length === 0) {
+      LavendUI.emptyState.classList.remove('hidden');
+      LavendUI.memoryCount.textContent = 'no memories yet — add your first!';
+      return;
+    }
+    LavendUI.emptyState.classList.add('hidden');
+    LavendUI.memoryCount.textContent = memories.length === 1
+      ? '1 memory saved so far 💜'
+      : `${memories.length} memories saved so far 💜`;
+
+    memories.forEach(memory => grid.appendChild(LavendUI.buildCard(memory)));
+  },
+
+  buildCard(memory) {
+    const tilt = hashPick(memory.id, TILTS);
+    const tape = hashPick(memory.id, TAPE_COLORS);
+    const tapeTilt = hashPick(memory.id + 1, [-6, -4, -2, 2, 4, 6]);
+
+    const card = document.createElement('article');
+    card.className = 'card';
+    card.style.setProperty('--tilt', `${tilt}deg`);
+
+    const pageLabel = String(memory.pageNumber).padStart(2, '0');
+
+    card.innerHTML = `
+      <div class="tape" style="--tape-color:${tape}; --tape-tilt:${tapeTilt}deg"></div>
+      <div class="card-photo-wrap" style="--accent:${memory.color}" data-role="zoom" title="Tap to zoom">
+        <img src="${memory.image}" alt="${escapeAttr(memory.caption || 'A memory')}">
+        <span class="page-badge">Page ${pageLabel}</span>
+      </div>
+      <p class="card-caption">${escapeHTML(memory.caption || 'A moment worth keeping.')}</p>
+      <div class="card-actions">
+        <button type="button" class="icon-btn" data-role="zoom" title="Zoom">🔍 Zoom</button>
+        <button type="button" class="icon-btn" data-role="edit" title="Edit">✏️ Edit</button>
+        <button type="button" class="icon-btn danger" data-role="delete" title="Delete">🗑️ Delete</button>
+      </div>
+    `;
+
+    card.querySelectorAll('[data-role="zoom"]').forEach(el =>
+      el.addEventListener('click', () => Lightbox.open(memory.image)));
+    card.querySelector('[data-role="edit"]').addEventListener('click', () => ModalCtrl.openEdit(memory));
+    card.querySelector('[data-role="delete"]').addEventListener('click', () => ConfirmCtrl.ask(
+      'Remove this page from the scrapbook?',
+      async () => {
+        await LavendDB.remove(memory.id);
+        await LavendUI.refresh();
+        LavendUI.toast('Memory removed.');
+      }
+    ));
+
+    return card;
+  },
+
+  toast(message) {
+    clearTimeout(LavendUI.toastTimer);
+    LavendUI.toastEl.textContent = message;
+    LavendUI.toastEl.classList.remove('hidden');
+    LavendUI.toastTimer = setTimeout(() => LavendUI.toastEl.classList.add('hidden'), 2200);
+  }
+};
+
+function escapeHTML(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+function escapeAttr(str) { return escapeHTML(str); }
+
+/* ---------------------------------------------------------------------- *
+ * ModalCtrl — the Add / Edit Memory form
+ * ---------------------------------------------------------------------- */
+const ModalCtrl = (() => {
+  const overlay = document.getElementById('memoryModal');
+  const form = document.getElementById('memoryForm');
+  const title = document.getElementById('modalTitle');
+  const editingId = document.getElementById('editingId');
+  const uploader = document.getElementById('uploader');
+  const imageInput = document.getElementById('imageInput');
+  const uploadPrompt = document.getElementById('uploadPrompt');
+  const imagePreview = document.getElementById('imagePreview');
+  const captionInput = document.getElementById('captionInput');
+  const pageNumberInput = document.getElementById('pageNumberInput');
+  const swatches = document.getElementById('swatches');
+  const customColor = document.getElementById('customColor');
+  let selectedColor = '#D8B4F8';
+
+  function setSelectedColor(hex) {
+    selectedColor = hex;
+    customColor.value = hex;
+    [...swatches.children].forEach(sw => sw.classList.toggle('active', sw.dataset.color.toLowerCase() === hex.toLowerCase()));
+  }
+
+  swatches.addEventListener('click', (e) => {
+    const btn = e.target.closest('.swatch');
+    if (!btn) return;
+    setSelectedColor(btn.dataset.color);
+  });
+  customColor.addEventListener('input', () => setSelectedColor(customColor.value));
+
+  /* --- uploader interactions --- */
+  uploader.addEventListener('click', () => imageInput.click());
+  uploader.addEventListener('dragover', (e) => { e.preventDefault(); uploader.classList.add('drag-over'); });
+  uploader.addEventListener('dragleave', () => uploader.classList.remove('drag-over'));
+  uploader.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploader.classList.remove('drag-over');
+    const file = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (file) handleFile(file);
+  });
+  imageInput.addEventListener('change', () => {
+    const file = imageInput.files && imageInput.files[0];
+    if (file) handleFile(file);
+  });
+
+  async function handleFile(file) {
+    if (!file.type.startsWith('image/')) {
+      LavendUI.toast('Please choose an image file.');
+      return;
+    }
+    const raw = await ImageUtil.fileToDataURL(file);
+    const resized = await ImageUtil.resize(raw);
+    pendingImageDataURL = resized;
+    imagePreview.src = resized;
+    imagePreview.classList.remove('hidden');
+    uploadPrompt.classList.add('hidden');
+  }
+
+  function resetForm() {
+    form.reset();
+    editingId.value = '';
+    pendingImageDataURL = null;
+    imagePreview.src = '';
+    imagePreview.classList.add('hidden');
+    uploadPrompt.classList.remove('hidden');
+    setSelectedColor('#D8B4F8');
+  }
+
+  function openAdd() {
+    resetForm();
+    title.textContent = 'New Memory';
+    pageNumberInput.value = memories.length
+      ? Math.max(...memories.map(m => m.pageNumber)) + 1
+      : 1;
+    show();
+  }
+
+  function openEdit(memory) {
+    resetForm();
+    title.textContent = 'Edit Memory';
+    editingId.value = memory.id;
+    captionInput.value = memory.caption || '';
+    pageNumberInput.value = memory.pageNumber;
+    setSelectedColor(memory.color || '#D8B4F8');
+    pendingImageDataURL = memory.image;
+    imagePreview.src = memory.image;
+    imagePreview.classList.remove('hidden');
+    uploadPrompt.classList.add('hidden');
+    show();
+  }
+
+  function show() {
+    overlay.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => captionInput.focus(), 50);
+  }
+  function close() {
+    overlay.classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    if (!pendingImageDataURL) {
+      LavendUI.toast('Add a photo for this memory first 🪻');
+      return;
+    }
+    const pageNumber = parseInt(pageNumberInput.value, 10) || (memories.length + 1);
+    const record = {
+      image: pendingImageDataURL,
+      caption: captionInput.value.trim(),
+      color: selectedColor,
+      pageNumber,
+      createdAt: Date.now()
+    };
+
+    if (editingId.value) {
+      record.id = Number(editingId.value);
+      await LavendDB.update(record);
+      LavendUI.toast('Memory updated ✏️');
+    } else {
+      await LavendDB.add(record);
+      LavendUI.toast('Memory saved 💜');
+    }
+
+    await LavendUI.refresh();
+    close();
+  });
+
+  document.getElementById('modalCloseBtn').addEventListener('click', close);
+  document.getElementById('cancelBtn').addEventListener('click', close);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+
+  return { openAdd, openEdit, close };
+})();
+
+document.getElementById('addMemoryBtn').addEventListener('click', () => ModalCtrl.openAdd());
+document.getElementById('emptyAddBtn').addEventListener('click', () => ModalCtrl.openAdd());
+
+/* ---------------------------------------------------------------------- *
+ * ConfirmCtrl — small reusable "are you sure?" dialog
+ * ---------------------------------------------------------------------- */
+const ConfirmCtrl = (() => {
+  const overlay = document.getElementById('confirmDialog');
+  const message = document.getElementById('confirmMessage');
+  const okBtn = document.getElementById('confirmOk');
+  const cancelBtn = document.getElementById('confirmCancel');
+  let onConfirm = null;
+
+  function ask(text, callback) {
+    message.textContent = text;
+    onConfirm = callback;
+    overlay.classList.remove('hidden');
+  }
+  function close() {
+    overlay.classList.add('hidden');
+    onConfirm = null;
+  }
+  okBtn.addEventListener('click', async () => {
+    if (onConfirm) await onConfirm();
+    close();
+  });
+  cancelBtn.addEventListener('click', close);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+
+  return { ask };
+})();
+
+/* ---------------------------------------------------------------------- *
+ * Lightbox — full-screen viewer with +/-/reset buttons, mouse wheel,
+ * and two-finger pinch-to-zoom for touch devices.
+ * ---------------------------------------------------------------------- */
+const Lightbox = (() => {
+  const overlay = document.getElementById('lightbox');
+  const stage = document.getElementById('lightboxStage');
+  const img = document.getElementById('lightboxImg');
+  const closeBtn = document.getElementById('lightboxClose');
+  const zoomInBtn = document.getElementById('zoomInBtn');
+  const zoomOutBtn = document.getElementById('zoomOutBtn');
+  const zoomResetBtn = document.getElementById('zoomResetBtn');
+
+  const MIN_ZOOM = 0.5, MAX_ZOOM = 3.5, STEP = 0.25;
+  let zoom = 1;
+  let panX = 0, panY = 0;
+
+  function apply() {
+    img.style.setProperty('--zoom', zoom);
+    img.style.setProperty('--pan-x', panX + 'px');
+    img.style.setProperty('--pan-y', panY + 'px');
+  }
+  function setZoom(z) {
+    zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
+    if (zoom === 1) { panX = 0; panY = 0; }
+    apply();
+  }
+
+  function open(src) {
+    img.src = src;
+    zoom = 1; panX = 0; panY = 0;
+    apply();
+    overlay.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+  }
+  function close() {
+    overlay.classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+
+  closeBtn.addEventListener('click', close);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+  zoomInBtn.addEventListener('click', () => setZoom(zoom + STEP));
+  zoomOutBtn.addEventListener('click', () => setZoom(zoom - STEP));
+  zoomResetBtn.addEventListener('click', () => setZoom(1));
+
+  /* mouse wheel zoom (desktop) */
+  stage.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    setZoom(zoom + (e.deltaY < 0 ? STEP : -STEP));
+  }, { passive: false });
+
+  /* --- drag to pan when zoomed in (mouse) --- */
+  let dragging = false, startX = 0, startY = 0, startPanX = 0, startPanY = 0;
+  img.addEventListener('mousedown', (e) => {
+    if (zoom <= 1) return;
+    dragging = true;
+    startX = e.clientX; startY = e.clientY;
+    startPanX = panX; startPanY = panY;
+  });
+  window.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    panX = startPanX + (e.clientX - startX);
+    panY = startPanY + (e.clientY - startY);
+    apply();
+  });
+  window.addEventListener('mouseup', () => dragging = false);
+
+  /* --- pinch-to-zoom (touch) --- */
+  let pinchStartDist = null;
+  let pinchStartZoom = 1;
+  let touchPanStart = null;
+
+  function touchDist(touches) {
+    const [a, b] = touches;
+    return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+  }
+
+  stage.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 2) {
+      pinchStartDist = touchDist(e.touches);
+      pinchStartZoom = zoom;
+    } else if (e.touches.length === 1 && zoom > 1) {
+      touchPanStart = { x: e.touches[0].clientX, y: e.touches[0].clientY, panX, panY };
+    }
+  }, { passive: true });
+
+  stage.addEventListener('touchmove', (e) => {
+    if (e.touches.length === 2 && pinchStartDist) {
+      e.preventDefault();
+      const newDist = touchDist(e.touches);
+      const ratio = newDist / pinchStartDist;
+      setZoom(pinchStartZoom * ratio);
+    } else if (e.touches.length === 1 && touchPanStart) {
+      e.preventDefault();
+      panX = touchPanStart.panX + (e.touches[0].clientX - touchPanStart.x);
+      panY = touchPanStart.panY + (e.touches[0].clientY - touchPanStart.y);
+      apply();
+    }
+  }, { passive: false });
+
+  stage.addEventListener('touchend', (e) => {
+    if (e.touches.length < 2) pinchStartDist = null;
+    if (e.touches.length === 0) touchPanStart = null;
+  });
+
+  return { open, close };
+})();
+
+/* ---------------------------------------------------------------------- *
+ * Global keyboard shortcuts — Escape closes whatever is open
+ * ---------------------------------------------------------------------- */
+window.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  if (!document.getElementById('lightbox').classList.contains('hidden')) Lightbox.close();
+  else if (!document.getElementById('confirmDialog').classList.contains('hidden')) document.getElementById('confirmCancel').click();
+  else if (!document.getElementById('memoryModal').classList.contains('hidden')) ModalCtrl.close();
+});
+
+/* ---------------------------------------------------------------------- *
+ * Ambient petals — spawn a handful of drifting emoji petals
+ * ---------------------------------------------------------------------- */
+(function spawnPetals() {
+  const container = document.getElementById('petals');
+  const glyphs = ['🪻', '🌸', '💮'];
+  const count = window.innerWidth < 700 ? 5 : 9;
+  for (let i = 0; i < count; i++) {
+    const span = document.createElement('span');
+    span.className = 'petal';
+    span.textContent = glyphs[i % glyphs.length];
+    span.style.left = Math.random() * 100 + 'vw';
+    span.style.animationDuration = (18 + Math.random() * 14) + 's';
+    span.style.animationDelay = (Math.random() * -20) + 's';
+    span.style.fontSize = (16 + Math.random() * 14) + 'px';
+    container.appendChild(span);
+  }
+})();
+
+/* ---------------------------------------------------------------------- *
+ * MusicCtrl — background music via a local <audio> element (song.mp3
+ * sitting next to this HTML file). Simplest and most reliable option:
+ * no network, no iframe, no postMessage — just play()/pause().
+ * ---------------------------------------------------------------------- */
+const MusicCtrl = (() => {
+  const btn = document.getElementById('musicToggleBtn');
+  const label = document.getElementById('musicBtnLabel');
+  const audio = document.getElementById('bgMusic');
+  let isPlaying = false;
+
+  function setPlayingUI(playing) {
+    isPlaying = playing;
+    btn.classList.toggle('is-active', playing);
+    btn.setAttribute('aria-pressed', String(playing));
+    label.textContent = playing ? 'Playing The Surprise Song' : 'Play The Surprise Song';
+  }
+
+  function toggle() {
+    if (isPlaying) {
+      audio.pause();
+      setPlayingUI(false);
+      return;
+    }
+    audio.play()
+      .then(() => setPlayingUI(true))
+      .catch(() => {
+        LavendUI.toast("Couldn't find song.mp3 — add it next to index.html.");
+        setPlayingUI(false);
+      });
+  }
+
+  audio.addEventListener('ended', () => setPlayingUI(false)); // in case loop ever fails to catch
+  btn.addEventListener('click', toggle);
+  return { toggle };
+})();
+
+/* ---------------------------------------------------------------------- *
+ * Celebration — confetti burst + floating balloons + the birthday message
+ * ---------------------------------------------------------------------- */
+const Celebration = (() => {
+  const overlay = document.getElementById('celebration');
+  const closeBtn = document.getElementById('celebrationClose');
+  const balloonsHost = document.getElementById('balloons');
+  const messageEl = document.getElementById('celebrationMessage');
+  const canvas = document.getElementById('confettiCanvas');
+  const ctx = canvas.getContext('2d');
+
+  const MESSAGE =
+`MY LOVE, MANY MANY HAPPY RETURNS OF THE DAY. THIS IS YOUR FIRST BIRTHDAY AS MY WIFE. WAAAAAATTT!!????? YOU HAVE GROWN UP A LOT. BUT STILL YOU ARE A BABY, MY BABY. YOU ARE A LITTLE ANGRY BABY BUT YOU ARE SO KIND.
+
+I AM SO GLAD TO WIN YOU IN MY LIFE. YOU ARE MY TROPHY AND MY SWEETHEART. I AM PROUD OF YOU NO MATTER WHAT YOU DO. YOU ARE THE MOST PERFECT AND SWEETEST GIRL EVER.
+
+WHATEVER YOU SAY, WHATEVER YOU DO, AND WHATEVER YOU DON'T SAY, I AM ALWAYS WITH YOU BABE. NEVER DOUBT IN YOURSELF. YOU WILL SUCCEED IN LIFE BABE. AND TRUST ME, EVERYTHING WILL BE FINE SOON.
+
+I LOVE YOU SO MUCH BABE.`;
+
+  const COLORS = ['#D8B4F8', '#F7C6D9', '#C3EFD8', '#F0D9A0', '#F4A9A0', '#FFFFFF'];
+  let particles = [];
+  let animId = null;
+  let balloonInterval = null;
+
+  function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+
+  function spawnBurst(count) {
+    const cx = canvas.width / 2;
+    for (let i = 0; i < count; i++) {
+      particles.push({
+        x: cx + (Math.random() - 0.5) * 200,
+        y: -20 - Math.random() * 200,
+        vx: (Math.random() - 0.5) * 6,
+        vy: 2 + Math.random() * 4,
+        size: 5 + Math.random() * 6,
+        color: COLORS[Math.floor(Math.random() * COLORS.length)],
+        rotation: Math.random() * 360,
+        spin: (Math.random() - 0.5) * 10,
+        shape: Math.random() > 0.5 ? 'rect' : 'circle'
+      });
+    }
+  }
+
+  function tick() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles.forEach(p => {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.03; // gentle gravity
+      p.rotation += p.spin;
+
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate((p.rotation * Math.PI) / 180);
+      ctx.fillStyle = p.color;
+      if (p.shape === 'rect') {
+        ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
+      } else {
+        ctx.beginPath();
+        ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    });
+    particles = particles.filter(p => p.y < canvas.height + 30);
+    animId = requestAnimationFrame(tick);
+  }
+
+  function spawnBalloon() {
+    const glyphs = ['🎈', '🎈', '💜', '🎉'];
+    const el = document.createElement('span');
+    el.className = 'balloon';
+    el.textContent = glyphs[Math.floor(Math.random() * glyphs.length)];
+    el.style.left = Math.random() * 90 + 'vw';
+    el.style.animationDuration = (6 + Math.random() * 4) + 's';
+    balloonsHost.appendChild(el);
+    setTimeout(() => el.remove(), 11000);
+  }
+
+  function open() {
+    messageEl.textContent = MESSAGE;
+    overlay.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    particles = [];
+    spawnBurst(140);
+    animId = requestAnimationFrame(tick);
+
+    // a steady trickle of balloons while the card is open
+    spawnBalloon();
+    balloonInterval = setInterval(spawnBalloon, 700);
+
+    // a couple of extra confetti bursts for good measure
+    setTimeout(() => spawnBurst(80), 500);
+    setTimeout(() => spawnBurst(80), 1100);
+  }
+
+  function close() {
+    overlay.classList.add('hidden');
+    document.body.style.overflow = '';
+    cancelAnimationFrame(animId);
+    clearInterval(balloonInterval);
+    balloonsHost.innerHTML = '';
+    particles = [];
+    window.removeEventListener('resize', resizeCanvas);
+  }
+
+  closeBtn.addEventListener('click', close);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+  document.getElementById('birthdayBtn').addEventListener('click', open);
+
+  return { close };
+})();
+
+/* extend the global Escape handler to also close the celebration overlay */
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !document.getElementById('celebration').classList.contains('hidden')) {
+    Celebration.close();
+  }
+});
+
+/* ---------------------------------------------------------------------- *
+ * Boot
+ * ---------------------------------------------------------------------- */
+(async function init() {
+  try {
+    await LavendUI.refresh();
+  } catch (err) {
+    console.error('Lavend failed to load saved memories:', err);
+    LavendUI.toast('Could not open local storage — try a different browser.');
+  }
+})();
+</script>
+</body>
+</html>

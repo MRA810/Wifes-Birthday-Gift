@@ -178,6 +178,19 @@ h1,h2,h3{ font-family: var(--font-display); margin: 0; }
   50% { height: 12px; }
 }
 
+/* --- Backup / Restore row: quieter than the main buttons --- */
+.cover-backup{
+  margin-top: 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.cover-backup .row{ display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.btn-small{ padding: 8px 16px; font-size: 0.8rem; box-shadow: none; }
+.btn-ghost:disabled{ opacity: 0.6; cursor: wait; transform: none; background: #fff; }
+.backup-hint{ font-size: 0.8rem; color: var(--lavender-dp); opacity: 0.8; margin: 0; }
+
 /* ==========================================================================
    Feed — the corkboard. Cards pinned at hand-set angles.
    ========================================================================== */
@@ -420,12 +433,14 @@ h1,h2,h3{ font-family: var(--font-display); margin: 0; }
   box-shadow: 0 26px 60px rgba(74,59,92,0.35);
   animation: pop-in 0.25s cubic-bezier(.2,.9,.3,1.2) both;
 }
-.confirm-box p{ font-size: 1.05rem; margin-bottom: 20px; }
+.confirm-box p{ font-size: 1.05rem; margin-bottom: 20px; white-space: pre-line; }
 .confirm-actions{ display:flex; gap: 10px; }
 .confirm-actions button{ flex:1; padding: 11px; border-radius: 999px; border:none; font-weight:700; }
 #confirmCancel{ background: var(--cream-deep); color: var(--lavender-dp); }
 #confirmOk{ background: #E77E93; color: #fff; }
 #confirmOk:hover{ background: #d96d83; }
+#confirmOk.is-safe{ background: var(--lavender-dp); }
+#confirmOk.is-safe:hover{ background: #7c5aa8; }
 
 /* ==========================================================================
    Lightbox
@@ -589,6 +604,20 @@ h1,h2,h3{ font-family: var(--font-display); margin: 0; }
       </button>
     </div>
     <p class="memory-count" id="memoryCount"></p>
+
+    <!-- Backup / Restore: saves every photo + note into one file, and brings it all back -->
+    <div class="cover-backup">
+      <div class="row">
+        <button class="btn-ghost btn-small" id="backupBtn" type="button">
+          <span aria-hidden="true">💾</span> Save Backup
+        </button>
+        <button class="btn-ghost btn-small" id="restoreBtn" type="button">
+          <span aria-hidden="true">📂</span> Restore Backup
+        </button>
+      </div>
+      <p class="backup-hint">Keeps all your photos &amp; notes safe in one file.</p>
+      <input type="file" id="restoreInput" accept=".json,application/json" hidden>
+    </div>
   </div>
 </header>
 
@@ -701,6 +730,7 @@ h1,h2,h3{ font-family: var(--font-display); margin: 0; }
      ModalCtrl   -> the Add/Edit Memory form modal
      Lightbox    -> full-screen zoom viewer with pinch/wheel/button zoom
      ConfirmCtrl -> the little "are you sure" dialog used for deletes
+     BackupCtrl  -> Save Backup / Restore Backup (whole scrapbook <-> one file)
    ========================================================================== */
 
 /* ---------------------------------------------------------------------- *
@@ -771,7 +801,29 @@ const LavendDB = (() => {
     });
   }
 
-  return { getAll, add, update, remove };
+  /* Replace EVERYTHING with the given records in one all-or-nothing
+     transaction: if anything goes wrong part-way, the browser rolls back
+     and the existing memories stay exactly as they were. */
+  async function replaceAll(records) {
+    const db = await open();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE, 'readwrite');
+      const store = tx.objectStore(STORE);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error || new Error('Restore was cancelled'));
+      try {
+        store.clear();
+        records.forEach(r => store.put(r));
+      } catch (err) {
+        // any failure while queuing: abort so the old memories are kept untouched
+        try { tx.abort(); } catch (e) { /* already finished */ }
+        reject(err);
+      }
+    });
+  }
+
+  return { getAll, add, update, remove, replaceAll };
 })();
 
 /* ---------------------------------------------------------------------- *
@@ -908,11 +960,11 @@ const LavendUI = {
     return card;
   },
 
-  toast(message) {
+  toast(message, duration = 2200) {
     clearTimeout(LavendUI.toastTimer);
     LavendUI.toastEl.textContent = message;
     LavendUI.toastEl.classList.remove('hidden');
-    LavendUI.toastTimer = setTimeout(() => LavendUI.toastEl.classList.add('hidden'), 2200);
+    LavendUI.toastTimer = setTimeout(() => LavendUI.toastEl.classList.add('hidden'), duration);
   }
 };
 
@@ -1074,9 +1126,12 @@ const ConfirmCtrl = (() => {
   const cancelBtn = document.getElementById('confirmCancel');
   let onConfirm = null;
 
-  function ask(text, callback) {
+  function ask(text, callback, opts = {}) {
     message.textContent = text;
     onConfirm = callback;
+    okBtn.textContent = opts.okLabel || 'Delete';
+    cancelBtn.textContent = opts.cancelLabel || 'Keep it';
+    okBtn.classList.toggle('is-safe', !!opts.safe);
     overlay.classList.remove('hidden');
   }
   function close() {
@@ -1084,8 +1139,9 @@ const ConfirmCtrl = (() => {
     onConfirm = null;
   }
   okBtn.addEventListener('click', async () => {
-    if (onConfirm) await onConfirm();
+    const cb = onConfirm;   // grab it, then close right away so a double-tap can't run it twice
     close();
+    if (cb) await cb();
   });
   cancelBtn.addEventListener('click', close);
   overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
@@ -1200,6 +1256,208 @@ const Lightbox = (() => {
   });
 
   return { open, close };
+})();
+
+/* ---------------------------------------------------------------------- *
+ * BackupCtrl — "Save Backup" / "Restore Backup"
+ *
+ * Save:    every memory (photo + diary note + accent color + page number +
+ *          id) is written into ONE .json file. The photos are embedded
+ *          inside it, so that single file is the whole scrapbook.
+ * Restore: pick that file again and the scrapbook is rebuilt exactly as it
+ *          was (same photos, notes, colors, page numbers, and even the same
+ *          tape/tilt on every card, since those are derived from the id).
+ *
+ * Restore is careful: the file is fully checked BEFORE anything is touched,
+ * the person is asked to confirm, and the swap happens in a single
+ * all-or-nothing database transaction — so a bad file or a failure can never
+ * leave the scrapbook half-erased.
+ * ---------------------------------------------------------------------- */
+const BackupCtrl = (() => {
+  const APP = 'lavend';
+  const FORMAT_VERSION = 1;
+  const DEFAULT_COLOR = '#D8B4F8';
+  const IMAGE_RE = /^data:image\/[a-z0-9.+-]+;base64,[A-Za-z0-9+/=]+$/i;
+  const COLOR_RE = /^#[0-9a-f]{6}$/i;
+
+  const backupBtn = document.getElementById('backupBtn');
+  const restoreBtn = document.getElementById('restoreBtn');
+  const restoreInput = document.getElementById('restoreInput');
+
+  function setBusy(busy) {
+    backupBtn.disabled = busy;
+    restoreBtn.disabled = busy;
+  }
+
+  function plural(n, one, many) { return n === 1 ? one : many; }
+
+  function todayStamp() {
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }
+
+  /* ---------------- SAVE ---------------- */
+  async function saveBackup() {
+    setBusy(true);
+    try {
+      const records = await LavendDB.getAll();
+      if (!records.length) {
+        LavendUI.toast('Nothing to back up yet — add a memory first 🪻');
+        return;
+      }
+      records.sort((a, b) => (a.pageNumber - b.pageNumber) || (a.id - b.id));
+
+      const payload = {
+        app: APP,
+        format: FORMAT_VERSION,
+        exportedAt: new Date().toISOString(),
+        count: records.length,
+        memories: records.map(r => ({
+          id: r.id,
+          image: r.image,
+          caption: r.caption || '',
+          color: r.color || DEFAULT_COLOR,
+          pageNumber: r.pageNumber,
+          createdAt: r.createdAt
+        }))
+      };
+
+      const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `lavend-backup-${todayStamp()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+
+      LavendUI.toast(`Backup saved — ${records.length} ${plural(records.length, 'memory', 'memories')} 💾`, 3500);
+    } catch (err) {
+      console.error('Lavend backup failed:', err);
+      LavendUI.toast("Couldn't save the backup — please try again.", 3500);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /* ---------------- CHECK (never trust a file blindly) ---------------- */
+  function cleanRecord(raw, index, usedIds) {
+    if (!raw || typeof raw !== 'object') return null;
+    if (typeof raw.image !== 'string' || raw.image.length < 50 || !IMAGE_RE.test(raw.image)) return null;
+
+    const pageNum = Math.floor(Number(raw.pageNumber));
+    let id;
+    if (Number.isInteger(raw.id) && raw.id > 0 && !usedIds.has(raw.id)) {
+      id = raw.id;
+      usedIds.add(id);
+    }
+
+    const rec = {
+      image: raw.image,
+      caption: typeof raw.caption === 'string' ? raw.caption.slice(0, 2000) : '',
+      color: (typeof raw.color === 'string' && COLOR_RE.test(raw.color)) ? raw.color : DEFAULT_COLOR,
+      pageNumber: Number.isFinite(pageNum) && pageNum >= 1 ? pageNum : index + 1,
+      createdAt: Number.isFinite(raw.createdAt) ? raw.createdAt : Date.now()
+    };
+    if (id !== undefined) rec.id = id;
+    return rec;
+  }
+
+  function parseBackup(text) {
+    let data;
+    try { data = JSON.parse(text); } catch (e) { return { error: 'parse' }; }
+
+    if (data && !Array.isArray(data) && data.app && data.app !== APP) return { error: 'foreign' };
+    const list = Array.isArray(data) ? data : (data && data.memories);
+    if (!Array.isArray(list)) return { error: 'shape' };
+
+    const usedIds = new Set();
+    const good = [];
+    list.forEach((raw, i) => {
+      const rec = cleanRecord(raw, i, usedIds);
+      if (rec) good.push(rec);
+    });
+    if (!good.length) return { error: 'empty' };
+
+    // records that keep their original id go first, so any record that needs a
+    // fresh id can never grab one that a later record is about to claim
+    good.sort((a, b) => (a.id === undefined) - (b.id === undefined));
+
+    return {
+      records: good,
+      skipped: list.length - good.length,
+      exportedAt: (!Array.isArray(data) && data.exportedAt) || null
+    };
+  }
+
+  /* ---------------- RESTORE ---------------- */
+  async function handleChosenFile(file) {
+    setBusy(true);
+    let parsed;
+    try {
+      const text = await file.text();
+      parsed = parseBackup(text);
+    } catch (err) {
+      console.error('Lavend could not read the backup file:', err);
+      parsed = { error: 'read' };
+    } finally {
+      setBusy(false);
+    }
+
+    if (parsed.error) {
+      const messages = {
+        parse: "That file doesn't look like a Lavend backup.",
+        foreign: "That file is from a different app, not a Lavend backup.",
+        shape: "That file doesn't look like a Lavend backup.",
+        empty: "That backup doesn't contain any readable memories.",
+        read: "Couldn't read that file — please try again."
+      };
+      LavendUI.toast(messages[parsed.error] || messages.parse, 3500);
+      return;
+    }
+
+    const n = parsed.records.length;
+    const current = memories.length;
+    let when = '';
+    if (parsed.exportedAt) {
+      const d = new Date(parsed.exportedAt);
+      if (!isNaN(d)) when = ` saved on ${d.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}`;
+    }
+
+    let msg = `Restore ${n} ${plural(n, 'memory', 'memories')} from the backup${when}?`;
+    if (current > 0) {
+      msg += `\n\nThis will replace the ${current} ${plural(current, 'memory', 'memories')} currently in the scrapbook.`;
+    }
+    if (parsed.skipped > 0) {
+      msg += `\n\n${parsed.skipped} ${plural(parsed.skipped, 'item', 'items')} in the file couldn't be read and will be skipped.`;
+    }
+
+    ConfirmCtrl.ask(msg, async () => {
+      setBusy(true);
+      try {
+        await LavendDB.replaceAll(parsed.records);
+        await LavendUI.refresh();
+        LavendUI.toast(`Restored ${n} ${plural(n, 'memory', 'memories')} 💜`, 3500);
+      } catch (err) {
+        console.error('Lavend restore failed:', err);
+        LavendUI.toast("Restore didn't work, so nothing was changed. Please try again.", 4500);
+      } finally {
+        setBusy(false);
+      }
+    }, { okLabel: 'Restore', cancelLabel: 'Cancel', safe: true });
+  }
+
+  backupBtn.addEventListener('click', saveBackup);
+  restoreBtn.addEventListener('click', () => restoreInput.click());
+  restoreInput.addEventListener('change', () => {
+    const file = restoreInput.files && restoreInput.files[0];
+    restoreInput.value = '';        // lets the same file be picked again later
+    if (file) handleChosenFile(file);
+  });
+
+  return { saveBackup, handleChosenFile, parseBackup };
 })();
 
 /* ---------------------------------------------------------------------- *
